@@ -1,3 +1,6 @@
 [submodule "ai-paper"]
 	path = ai-paper
 	url = git@fawetian.github.com:fawetian/ai-paper.git
+[submodule "agent/agentic-design-patterns-action"]
+	path = agent/agentic-design-patterns-action
+	url = git@fawetian.github.com:fawetian/agentic-design-patterns-action.git
