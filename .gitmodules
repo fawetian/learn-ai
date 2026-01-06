@@ -1,0 +1,3 @@
+[submodule "ai-paper"]
+	path = ai-paper
+	url = git@fawetian.github.com:fawetian/ai-paper.git
