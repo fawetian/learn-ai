@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug mini-kode (交互式)",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "src/index.ts"],
+      "cwd": "${workspaceFolder}/agent/mini-kode",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "DEV": "true"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug mini-kode (非交互式)",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "src/index.ts", "你的测试 prompt"],
+      "cwd": "${workspaceFolder}/agent/mini-kode",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "DEV": "true"
+      }
+    }
+  ]
+}

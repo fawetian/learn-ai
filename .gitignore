@@ -1,0 +1,86 @@
+# 敏感配置文件
+**/config.toml
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
+**/.env.*
+!**/.env.example
+!**/.env.example.*
+
+# Secret 和 Key 文件
+**/*secret*
+**/*key*
+**/*token*
+!**/*secret*.example*
+!**/*key*.example*
+!**/*token*.example*
+
+# 排除代码文件中的 token/key 相关文件名（这些是正常的代码文件）
+!**/token*.ts
+!**/token*.tsx
+!**/token*.js
+!**/token*.jsx
+!**/key*.ts
+!**/key*.tsx
+!**/key*.js
+!**/key*.jsx
+!**/keyBindings*
+!**/keyMatchers*
+!**/keyboard-shortcuts*
+!**/tokenLimits*
+!**/tokenCalculation*
+!**/token-storage*
+!**/token-caching*
+
+# 其他敏感文件
+**/credentials.json
+**/secrets.json
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/id_rsa
+**/id_rsa.pub
+**/id_ed25519
+**/id_ed25519.pub
+
+# 数据库文件
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# 日志文件
+**/*.log
+
+# 临时文件
+**/.DS_Store
+**/Thumbs.db
+
+# Node modules (如果还没有)
+**/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/.turbo/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/venv/
+**/env/
+**/.venv/
+
+# IDE
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+
+# OS
+**/.DS_Store
+**/Thumbs.db
