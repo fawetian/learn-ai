@@ -1,3 +1,22 @@
+"""
+@file prompts.py
+@description Legacy 提示词模板，用于计划-执行和多 Agent 工作流
+
+主要功能：
+- report_planner_query_writer_instructions: 报告规划查询生成指令
+- report_planner_instructions: 报告规划指令
+- query_writer_instructions: 章节查询生成指令
+- section_writer_instructions: 章节编写指令
+- section_grader_instructions: 章节评估指令
+- final_section_writer_instructions: 最终章节编写指令
+- SUPERVISOR_INSTRUCTIONS: 监督者系统提示
+- RESEARCH_INSTRUCTIONS: 研究员系统提示
+- SUMMARIZATION_PROMPT: 网页摘要提示
+
+依赖关系：
+- 无外部依赖，纯字符串模板
+"""
+
 report_planner_query_writer_instructions="""You are performing research for a report. 
 
 <Report topic>

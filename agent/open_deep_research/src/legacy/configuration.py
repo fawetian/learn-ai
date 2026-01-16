@@ -1,3 +1,16 @@
+"""
+@file configuration.py
+@description Legacy 配置管理，为计划-执行和多 Agent 工作流提供配置
+
+主要功能：
+- SearchAPI: 搜索 API 枚举（Tavily、Perplexity、Exa 等）
+- Configuration: 计划-执行工作流配置（graph.py 使用）
+- MultiAgentConfiguration: 多 Agent 工作流配置（multi_agent.py 使用）
+
+依赖关系：
+- langchain_core.runnables.RunnableConfig: 运行时配置
+"""
+
 import os
 from enum import Enum
 from dataclasses import dataclass, fields

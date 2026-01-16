@@ -1,3 +1,19 @@
+"""
+@file state.py
+@description Legacy 状态定义，用于计划-执行和多 Agent 工作流
+
+主要功能：
+- Section: 报告章节模型
+- Sections: 章节列表模型
+- SearchQuery/Queries: 搜索查询模型
+- Feedback: 章节评估反馈模型
+- ReportState: 报告生成的主状态
+- SectionState: 章节构建的子状态
+
+依赖关系：
+- pydantic.BaseModel: 数据验证基类
+"""
+
 from typing import Annotated, List, TypedDict, Literal
 from pydantic import BaseModel, Field
 import operator

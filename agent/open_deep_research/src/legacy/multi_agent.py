@@ -1,3 +1,26 @@
+"""
+@file multi_agent.py
+@description Legacy 多 Agent 架构实现（Supervisor-Researcher 模式）
+
+主要功能：
+- supervisor: 监督者 Agent，负责规划报告结构和协调研究
+- supervisor_tools: 处理监督者的工具调用
+- research_agent: 研究员 Agent，负责执行具体搜索任务
+- research_agent_tools: 处理研究员的工具调用
+- get_supervisor_tools/get_research_tools: 动态获取工具列表
+
+架构特点：
+- 两层 Agent 结构：Supervisor + Research Team
+- 支持 MCP 工具扩展
+- 支持多种搜索 API（Tavily、DuckDuckGo）
+
+依赖关系：
+- langgraph.graph: 状态图构建
+- legacy.configuration: 配置管理
+- legacy.prompts: 提示词模板
+- legacy.utils: 工具函数
+"""
+
 from typing import List, Annotated, TypedDict, Literal, cast
 from pydantic import BaseModel, Field
 import operator

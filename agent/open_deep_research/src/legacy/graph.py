@@ -1,3 +1,28 @@
+"""
+@file graph.py
+@description Legacy 计划-执行工作流实现（Plan-and-Execute 模式）
+
+主要功能：
+- generate_report_plan: 生成报告计划和章节结构
+- human_feedback: 获取人工反馈并路由到下一步
+- generate_queries: 为章节生成搜索查询
+- search_web: 执行网络搜索
+- write_section: 编写章节内容并评估质量
+- write_final_sections: 编写不需要研究的章节（如结论）
+- compile_final_report: 编译最终报告
+
+架构特点：
+- 两层图结构：外层报告图 + 内层章节构建子图
+- 支持人工反馈循环
+- 支持章节质量评估和迭代改进
+
+依赖关系：
+- langgraph.graph: 状态图构建
+- legacy.state: 状态定义
+- legacy.prompts: 提示词模板
+- legacy.utils: 工具函数
+"""
+
 from typing import Literal
 
 from langchain.chat_models import init_chat_model

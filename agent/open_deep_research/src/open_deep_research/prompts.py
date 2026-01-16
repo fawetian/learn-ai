@@ -1,5 +1,63 @@
-"""System prompts and prompt templates for the Deep Research agent."""
+"""
+@file prompts.py
+@description 系统提示词和提示模板，控制 Deep Research Agent 的行为
 
+主要功能：
+- clarify_with_user_instructions: 用户澄清问题的指令
+- transform_messages_into_research_topic_prompt: 消息转研究简报的提示
+- lead_researcher_prompt: 研究主管的系统提示
+- research_system_prompt: 研究员的系统提示
+- compress_research_system_prompt: 研究压缩的指令
+- final_report_generation_prompt: 最终报告生成的指令
+- summarize_webpage_prompt: 网页摘要的指令
+
+依赖关系：
+- 无外部依赖，纯字符串模板
+
+提示词设计原则：
+1. 使用 XML 标签（如 <Task>, <Instructions>）结构化提示内容
+2. 明确定义硬性限制（<Hard Limits>）防止无限循环
+3. 提供具体示例帮助模型理解预期输出
+4. 使用占位符（如 {date}, {messages}）支持动态内容注入
+
+提示词使用流程：
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          提示词使用流程                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  用户输入                                                                │
+│      │                                                                  │
+│      ▼                                                                  │
+│  clarify_with_user_instructions ──► 判断是否需要澄清                     │
+│      │                                                                  │
+│      ▼                                                                  │
+│  transform_messages_into_research_topic_prompt ──► 生成研究简报          │
+│      │                                                                  │
+│      ▼                                                                  │
+│  lead_researcher_prompt ──► 指导监督者规划研究策略                        │
+│      │                                                                  │
+│      ▼                                                                  │
+│  research_system_prompt ──► 指导研究员执行搜索                           │
+│      │                                                                  │
+│      ▼                                                                  │
+│  compress_research_system_prompt ──► 压缩研究发现                        │
+│      │                                                                  │
+│      ▼                                                                  │
+│  final_report_generation_prompt ──► 生成最终报告                         │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+"""
+
+# ==================== 用户澄清提示词 ====================
+# 用于 clarify_with_user 节点
+# 目的：判断用户请求是否清晰，是否需要询问澄清问题
+# 输入：{messages} - 用户消息历史, {date} - 当前日期
+# 输出：JSON 格式，包含 need_clarification, question, verification 三个字段
+# 关键特性：
+# - 避免重复提问：检查历史消息，不重复提出已问过的问题
+# - 识别模糊术语：检查缩写、首字母缩略词、未知术语
+# - 结构化输出：返回 JSON 格式便于后续处理
+# - 验证消息：当无需澄清时，提供确认消息以增强用户体验
 clarify_with_user_instructions="""
 These are the messages that have been exchanged so far from the user asking for the report:
 <Messages>
@@ -41,7 +99,20 @@ For the verification message when no clarification is needed:
 """
 
 
-transform_messages_into_research_topic_prompt = """You will be given a set of messages that have been exchanged so far between yourself and the user. 
+# ==================== 研究简报生成提示词 ====================
+# 用于 write_research_brief 节点
+# 目的：将用户的原始消息转换为结构化的研究简报
+# 输入：{messages} - 用户消息历史, {date} - 当前日期
+# 输出：详细的研究问题描述，用于指导后续研究
+# 关键设计：
+# - 最大化具体性和细节：包含所有用户提供的信息和偏好
+# - 不做未经证实的假设：对未指定的维度保持开放
+# - 使用第一人称：从用户角度表述研究问题
+# - 指定优先使用的信息来源：官方网站、原始论文、权威平台优先
+# 占位符说明：
+# - {messages}：用户与 Agent 的完整对话历史
+# - {date}：当前日期，用于时间相关的研究
+transform_messages_into_research_topic_prompt = """You will be given a set of messages that have been exchanged so far between yourself and the user.
 Your job is to translate these messages into a more detailed and concrete research question that will be used to guide the research.
 
 The messages that have been exchanged so far between yourself and the user are:
@@ -76,10 +147,25 @@ Guidelines:
 - If the query is in a specific language, prioritize sources published in that language.
 """
 
+# ==================== 研究主管提示词 ====================
+# 用于 supervisor 节点
+# 目的：指导研究主管规划研究策略，分配任务给子研究员
+# 输入：{date} - 当前日期, {max_concurrent_research_units} - 最大并发数, {max_researcher_iterations} - 最大迭代次数
+# 可用工具：ConductResearch（委派研究）, ResearchComplete（完成研究）, think_tool（战略思考）
+# 关键设计：
+# - 使用 think_tool 在委派前规划策略，在每次委派后评估进展
+# - 限制并发研究单元数量，防止资源浪费
+# - 简单任务使用单个 agent，复杂任务可并行处理
+# - 每个 ConductResearch 调用需要提供完整独立的指令（子 agent 无法看到其他 agent 的工作）
+# - 设置硬性限制防止无限循环
+# 占位符说明：
+# - {date}：当前日期
+# - {max_concurrent_research_units}：单次迭代最多并发 agent 数量
+# - {max_researcher_iterations}：最多允许的 ConductResearch 和 think_tool 调用总数
 lead_researcher_prompt = """You are a research supervisor. Your job is to conduct research by calling the "ConductResearch" tool. For context, today's date is {date}.
 
 <Task>
-Your focus is to call the "ConductResearch" tool to conduct research against the overall research question passed in by the user. 
+Your focus is to call the "ConductResearch" tool to conduct research against the overall research question passed in by the user.
 When you are completely satisfied with the research findings returned from the tool calls, then you should call the "ResearchComplete" tool to indicate that you are done with your research.
 </Task>
 
@@ -135,6 +221,20 @@ After each ConductResearch tool call, use think_tool to analyze the results:
 - Do NOT use acronyms or abbreviations in your research questions, be very clear and specific
 </Scaling Rules>"""
 
+# ==================== 研究员提示词 ====================
+# 用于 researcher 节点
+# 目的：指导研究员执行具体的搜索和信息收集任务
+# 输入：{date} - 当前日期, {mcp_prompt} - MCP 工具说明（可选）
+# 可用工具：tavily_search（网络搜索）, think_tool（战略思考）, MCP 工具（如配置）
+# 关键设计：
+# - 从宽泛搜索开始，逐步缩小范围（先广后精）
+# - 每次搜索后使用 think_tool 评估结果，避免盲目搜索
+# - 简单查询 2-3 次搜索，复杂查询最多 5 次（防止过度搜索）
+# - 找到 3+ 相关来源后停止搜索（满足基本需求即可）
+# - 连续两次搜索返回相似信息时立即停止（避免重复劳动）
+# 占位符说明：
+# - {date}：当前日期
+# - {mcp_prompt}：MCP（Model Context Protocol）工具的使用说明，如果配置了 MCP 服务器则会注入
 research_system_prompt = """You are a research assistant conducting research on the user's input topic. For context, today's date is {date}.
 
 <Task>
@@ -183,6 +283,19 @@ After each search tool call, use think_tool to analyze the results:
 """
 
 
+# ==================== 研究压缩提示词 ====================
+# 用于 compress_research 节点
+# 目的：将研究员收集的原始信息整理为结构化的研究笔记
+# 输入：{date} - 当前日期
+# 输出：包含查询列表、完整发现、来源列表的结构化报告
+# 关键设计：
+# - 保留所有相关信息，不要过度摘要（完整性优先）
+# - 使用内联引用标注来源（便于追溯）
+# - 合并重复信息但保留所有来源（去重但保留多源验证）
+# - 输出格式：查询列表 → 完整发现 → 来源列表
+# - 关键提醒：不要丢失任何来源，后续 LLM 会合并多个报告
+# 占位符说明：
+# - {date}：当前日期
 compress_research_system_prompt = """You are a research assistant that has conducted research on a topic by calling several tools and web searches. Your job is now to clean up the findings, but preserve all of the relevant statements and information that the researcher has gathered. For context, today's date is {date}.
 
 <Task>
@@ -221,10 +334,29 @@ The report should be structured like this:
 Critical Reminder: It is extremely important that any information that is even remotely relevant to the user's research topic is preserved verbatim (e.g. don't rewrite it, don't summarize it, don't paraphrase it).
 """
 
+# 辅助提示词：用于指导人工清理研究发现
+# 目的：强调保留原始信息而不是摘要
 compress_research_simple_human_message = """All above messages are about research conducted by an AI Researcher. Please clean up these findings.
 
 DO NOT summarize the information. I want the raw information returned, just in a cleaner format. Make sure all relevant information is preserved - you can rewrite findings verbatim."""
 
+# ==================== 最终报告生成提示词 ====================
+# 用于 final_report_generation 节点
+# 目的：根据所有研究发现生成最终的综合报告
+# 输入：{research_brief} - 研究简报, {messages} - 消息历史, {findings} - 研究发现, {date} - 当前日期
+# 输出：结构化的 Markdown 格式报告
+# 关键设计：
+# - 报告语言必须与用户消息语言一致（重要！）
+# - 使用 Markdown 格式（# 标题, ## 章节）
+# - 包含内联引用和来源列表
+# - 根据问题类型选择合适的报告结构（比较、列表、概述等）
+# - 详细全面：用户期望深度研究报告，应包含所有相关信息
+# - 避免自我引用：不要说"我在做什么"，直接呈现报告内容
+# 占位符说明：
+# - {research_brief}：结构化的研究简报，包含用户需求的详细描述
+# - {messages}：用户与 Agent 的完整对话历史，用于理解上下文
+# - {findings}：研究员收集的所有原始发现和来源
+# - {date}：当前日期
 final_report_generation_prompt = """Based on all the research conducted, create a comprehensive, well-structured answer to the overall research brief:
 <Research Brief>
 {research_brief}
@@ -284,7 +416,7 @@ Make sure that your sections are cohesive, and make sense for the reader.
 For each section of the report, do the following:
 - Use simple, clear language
 - Use ## for section title (Markdown format) for each section of the report
-- Do NOT ever refer to yourself as the writer of the report. This should be a professional report without any self-referential language. 
+- Do NOT ever refer to yourself as the writer of the report. This should be a professional report without any self-referential language.
 - Do not say what you are doing in the report. Just write the report without any commentary from yourself.
 - Each section should be as long as necessary to deeply answer the question with the information you have gathered. It is expected that sections will be fairly long and verbose. You are writing a deep research report, and users will expect a thorough answer.
 - Use bullet points to list out information when appropriate, but by default, write in paragraph form.
@@ -308,6 +440,23 @@ Format the report in clear markdown with proper structure and include source ref
 """
 
 
+# ==================== 网页摘要提示词 ====================
+# 用于 summarize_webpage 函数（在 utils.py 中）
+# 目的：将网页原始内容压缩为结构化摘要
+# 输入：{webpage_content} - 网页原始内容, {date} - 当前日期
+# 输出：JSON 格式，包含 summary（摘要）和 key_excerpts（关键摘录）
+# 关键设计：
+# - 保留主要主题、关键事实、重要引用（完整性优先）
+# - 针对不同内容类型采用不同策略：
+#   * 新闻文章：关注 who, what, when, where, why, how
+#   * 科学内容：保留方法论、结果、结论
+#   * 观点文章：保留主要论点和支持点
+#   * 产品页面：保留关键特性、规格、独特卖点
+# - 目标长度：原文的 25-30%（适度压缩）
+# - 最多 5 条关键摘录（精选最重要的引用）
+# 占位符说明：
+# - {webpage_content}：网页的原始文本内容
+# - {date}：当前日期
 summarize_webpage_prompt = """You are tasked with summarizing the raw content of a webpage retrieved from a web search. Your goal is to create a summary that preserves the most important information from the original web page. This summary will be used by a downstream research agent, so it's crucial to maintain the key details without losing essential information.
 
 Here is the raw content of the webpage:
@@ -338,28 +487,28 @@ Your summary should be significantly shorter than the original content but compr
 Present your summary in the following format:
 
 ```
-{{
+{
    "summary": "Your summary here, structured with appropriate paragraphs or bullet points as needed",
    "key_excerpts": "First important quote or excerpt, Second important quote or excerpt, Third important quote or excerpt, ...Add more excerpts as needed, up to a maximum of 5"
-}}
+}
 ```
 
 Here are two examples of good summaries:
 
 Example 1 (for a news article):
 ```json
-{{
+{
    "summary": "On July 15, 2023, NASA successfully launched the Artemis II mission from Kennedy Space Center. This marks the first crewed mission to the Moon since Apollo 17 in 1972. The four-person crew, led by Commander Jane Smith, will orbit the Moon for 10 days before returning to Earth. This mission is a crucial step in NASA's plans to establish a permanent human presence on the Moon by 2030.",
    "key_excerpts": "Artemis II represents a new era in space exploration, said NASA Administrator John Doe. The mission will test critical systems for future long-duration stays on the Moon, explained Lead Engineer Sarah Johnson. We're not just going back to the Moon, we're going forward to the Moon, Commander Jane Smith stated during the pre-launch press conference."
-}}
+}
 ```
 
 Example 2 (for a scientific article):
 ```json
-{{
+{
    "summary": "A new study published in Nature Climate Change reveals that global sea levels are rising faster than previously thought. Researchers analyzed satellite data from 1993 to 2022 and found that the rate of sea-level rise has accelerated by 0.08 mm/year² over the past three decades. This acceleration is primarily attributed to melting ice sheets in Greenland and Antarctica. The study projects that if current trends continue, global sea levels could rise by up to 2 meters by 2100, posing significant risks to coastal communities worldwide.",
-   "key_excerpts": "Our findings indicate a clear acceleration in sea-level rise, which has significant implications for coastal planning and adaptation strategies, lead author Dr. Emily Brown stated. The rate of ice sheet melt in Greenland and Antarctica has tripled since the 1990s, the study reports. Without immediate and substantial reductions in greenhouse gas emissions, we are looking at potentially catastrophic sea-level rise by the end of this century, warned co-author Professor Michael Green."  
-}}
+   "key_excerpts": "Our findings indicate a clear acceleration in sea-level rise, which has significant implications for coastal planning and adaptation strategies, lead author Dr. Emily Brown stated. The rate of ice sheet melt in Greenland and Antarctica has tripled since the 1990s, the study reports. Without immediate and substantial reductions in greenhouse gas emissions, we are looking at potentially catastrophic sea-level rise by the end of this century, warned co-author Professor Michael Green."
+}
 ```
 
 Remember, your goal is to create a summary that can be easily understood and utilized by a downstream research agent while preserving the most critical information from the original webpage.

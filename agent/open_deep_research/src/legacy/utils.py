@@ -1,3 +1,21 @@
+"""
+@file utils.py
+@description Legacy 工具函数，为计划-执行和多 Agent 工作流提供支持
+
+主要功能：
+- 搜索 API 封装：tavily_search_async, perplexity_search, exa_search, arxiv_search_async 等
+- 搜索结果处理：deduplicate_and_format_sources, format_sections
+- 网页抓取：scrape_pages, google_search_async
+- 工具函数：get_config_value, get_search_params, get_today_str
+- 搜索执行：select_and_execute_search
+
+依赖关系：
+- tavily.AsyncTavilyClient: Tavily 搜索客户端
+- exa_py.Exa: Exa 搜索客户端
+- duckduckgo_search.DDGS: DuckDuckGo 搜索
+- langchain_community.retrievers: ArXiv、PubMed 检索器
+"""
+
 import os
 import asyncio
 import json
